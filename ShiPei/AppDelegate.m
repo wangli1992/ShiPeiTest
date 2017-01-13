@@ -7,18 +7,81 @@
 //
 
 #import "AppDelegate.h"
+#import "AViewController.h"
+
 
 @interface AppDelegate ()
 
+@property(nonatomic,strong) BMKMapManager   *mapManager;
+@property (nonatomic,strong) BMKLocationService* locService;
 @end
 
 @implementation AppDelegate
 
+#pragma  makr - locService
+-(BMKLocationService*)locService{
+    if(!_locService){
+        _locService=[[BMKLocationService alloc]  init];
+        _locService.delegate=self;
+    }
+    return _locService;
+}
+
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    // 1.创建窗口
+    self.window = [[UIWindow alloc] init];
+    self.window.frame = [UIScreen mainScreen].bounds;
+    
+    AViewController *vc = [[AViewController alloc]init];
+    UINavigationController *nv = [[UINavigationController alloc]initWithRootViewController:vc];
+    self.window.rootViewController = nv;
+    // 3.显示窗口
+    [self.window makeKeyAndVisible];
+    
+    _mapManager=[[BMKMapManager alloc]  init];
+    
+    BOOL ret=[_mapManager start: @"4LZuVbGVbKdbNp65bNkKWvPfKM6biXG2" generalDelegate:nil];
+    if(!ret){
+        NSLog(@"Baidu Map Manager Start failed!");
+        
+        //init baidu navigation
+    }
+    _locService =[[BMKLocationService alloc]init];
+   _locService.delegate = self;
+    [_locService startUserLocationService];
     return YES;
 }
+-(void)didUpdateUserHeading:(BMKUserLocation *)userLocation {
+//    [_mapView updateLocationData:userLocation];
+    NSLog(@"heading is %@",userLocation.heading);
+}
+
+#pragma  make - implement location delegate
+-(void)didUpdateBMKUserLocation:(BMKUserLocation *)userLocation{
+    //    NSTimeInterval howRecent = [userLocation..timestamp timeIntervalSinceNow];
+    //    if(howRecent < -10) return; //离上次更新的时间少于10秒
+    //    if(newLocation.horizontalAccuracy > 100) return; //精度> 100米
+    
+    //        [_mapView updateLocationData:userLocation];
+    NSLog(@"didUpdateUserLocation lat %f,long %f",userLocation.location.coordinate.latitude,
+          userLocation.location.coordinate.longitude);
+    [[NSUserDefaults standardUserDefaults] setValue:[NSString stringWithFormat:@"%f", userLocation.location.coordinate.longitude] forKey:@"baidu_current_long"];
+    [[NSUserDefaults standardUserDefaults] setValue:[NSString stringWithFormat:@"%f",userLocation.location.coordinate.latitude]  forKey:@"baidu_current_lat"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+    //展示用户位置
+   // _mapView.showsUserLocation = YES;
+    //更新用户当前的坐标。
+   // [_mapView updateLocationData:userLocation];
+    //追到当前位置之后 就停止定位
+    [_locService stopUserLocationService];
+    
+    //    _mapView.centerCoordinate=userLocation.location.coordinate;
+    
+    //    _mapView.showsUserLocation=NO;
+    
+}
+
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
